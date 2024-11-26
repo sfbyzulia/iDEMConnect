@@ -1,6 +1,6 @@
-public class ReminderTask implements Database.Batchable<SObject> {
+global class ReminderTask implements Database.Batchable<SObject> {
 
-    public Database.QueryLocator start(Database.BatchableContext bc) {
+    global Database.QueryLocator start(Database.BatchableContext bc) {
         // Fetch IDs of accounts that already have tasks with 'Call'
         Set<Id> accountIdsWithCallTasks = new Set<Id>();
         for (Task task : [SELECT WhatId FROM Task WHERE Subject = 'Call']) {
@@ -17,7 +17,7 @@ public class ReminderTask implements Database.Batchable<SObject> {
         return Database.getQueryLocator(query);
     }
 
-    public void execute(Database.BatchableContext bc, List<Account> accounts) {
+    global void execute(Database.BatchableContext bc, List<Account> accounts) {
         List<Task> tasks = new List<Task>();
 
         for (Account acc : accounts) {
@@ -36,7 +36,7 @@ public class ReminderTask implements Database.Batchable<SObject> {
         }
     }
 
-    public void finish(Database.BatchableContext bc) {
+    global void finish(Database.BatchableContext bc) {
         System.debug('Reminder tasks have been created successfully.');
     }
 }
