@@ -67,4 +67,22 @@ public class ReminderTaskTest {
             Assert.areEqual(expectedDate, task.ActivityDate, 'Task reminder should be 5 days from today.');
         }
     }
+    
+    @isTest
+    static void testScheduler() {
+        // Start the test context
+        Test.startTest();
+    
+        // Schedule the job using the ReminderTaskScheduler class
+        String cronExpression = '0 0 9 ? * 2#1'; // First Monday of every month at 9:00 AM
+        String jobId = System.schedule('Test Reminder Task Scheduler', cronExpression, new ReminderTaskScheduler());
+    
+        // End the test context
+        Test.stopTest();
+    
+        // Verify the scheduled job exists
+        CronTrigger ct = [SELECT Id, CronExpression, TimesTriggered FROM CronTrigger WHERE Id = :jobId];
+        Assert.areEqual(cronExpression, ct.CronExpression, 'The cron expression should match.');
+        Assert.areEqual(0, ct.TimesTriggered, 'The job should not have been triggered yet.');
+    }    
 }
