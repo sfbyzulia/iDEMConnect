@@ -41,21 +41,22 @@ public class OrderTriggerHandlerTest {
     static void testOrderActivationWithoutProducts() {
         // Fetch the Order created in @testSetup
         Order ord = [SELECT Id, Status FROM Order WHERE Status = 'Draft' LIMIT 1];
-
+    
         // Attempt to activate the Order without adding Order Items
         ord.Status = 'Activated';
-
+    
         Test.startTest();
         try {
             update ord;
-            Assert.fail('Expected a FAILED_ACTIVATION error but none occurred.');
-        } catch (DmlException e) {
-            // Verify the error contains the expected Salesforce validation
-            Assert.isTrue(e.getMessage().contains('An order must have at least one product'), 
-                          'Expected a Salesforce validation error, but got: ' + e.getMessage());
+            Assert.fail('Expected a FIELD_CUSTOM_VALIDATION_EXCEPTION but none occurred.');
+        } catch (Exception e) {
+            // Verify that the exception contains the expected validation error
+            String errorMessage = 'This order cannot be activated without associated products. Please add products before changing the status to Activated.';
+            Assert.isTrue(e.getMessage().contains(errorMessage), 
+                          'Expected a validation error, but got: ' + e.getMessage());
         }
         Test.stopTest();
-    }
+    }    
 
     @isTest
     static void testOrderActivationWithProducts() {
