@@ -1,4 +1,4 @@
-public class OrderTriggerHandler {
+public class OrderHandler {
 
     public static void validateOrderActivation(List<Order> newOrders, Map<Id, Order> oldOrderMap) {
         for (Order ord : newOrders) {
