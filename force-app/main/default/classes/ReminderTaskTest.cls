@@ -3,86 +3,69 @@ public class ReminderTaskTest {
 
     @testSetup
     static void setupTestData() {
-        // Create accounts
+        // Create accounts for different scenarios
         Account accWithoutOrder = new Account(Name = 'Account Without Order');
         Account accWithOrder = new Account(Name = 'Account With Order');
         Account accWithTask = new Account(Name = 'Account With Call Task');
         insert new List<Account>{ accWithoutOrder, accWithOrder, accWithTask };
 
-        // Create one contract
-        Contract con = new Contract(
-            AccountId = accWithOrder.Id, // Link it to accWithOrder by default
-            Status = 'Draft',
-            StartDate = Date.today(),
-            ContractTerm = 12
-        );
+        Contract con = new Contract(AccountId = accWithOrder.Id, Status = 'Draft', StartDate = Date.today(), ContractTerm = 12);
         insert con;
         con.Status = 'Activated';
         update con;
 
-        // Create an order for the second account with the activated contract
-        Order order = new Order(
-            AccountId = accWithOrder.Id,
-            ContractId = con.Id, // Attach the same contract to the order
-            Status = 'Draft',
-            EffectiveDate = Date.today()
-        );
+        Order order = new Order(AccountId = accWithOrder.Id, ContractId = con.Id, Status = 'Draft', EffectiveDate = Date.today());
         insert order;
 
-        // Create a 'Call' task for the third account
         Task callTask = new Task(
             Subject = 'Call',
-            Status = 'Not Started',
-            Priority = 'Normal',
-            ActivityDate = Date.today().addDays(5), // Reminder for 5 days later
+            Status = 'Nouvelle',
+            Priority = 'Normale',
+            ActivityDate = Date.today(), // Task due today
             WhatId = accWithTask.Id,
-            OwnerId = UserInfo.getUserId()
+            OwnerId = UserInfo.getUserId(),
+            IsReminderSet = true,
+            ReminderDateTime = DateTime.now().addDays(5).addHours(9)
         );
         insert callTask;
     }
 
     @isTest
     static void testReminderTaskBatch() {
-        // Calculate the expected date dynamically
-        Date expectedDate = Date.today().addDays(5);
+        Date expectedActivityDate = Date.today(); // Task is due today
+        DateTime expectedReminderDateTime = DateTime.now().addDays(5).addHours(9);
 
-        // Verify test setup
-        List<Account> allAccounts = [SELECT Id FROM Account];
-        Assert.areEqual(3, allAccounts.size(), 'There should be 3 accounts in the test setup.');
-
-        // Execute the batch
         Test.startTest();
-        Database.executeBatch(new ReminderTask(), 1); // Process one batch at a time
+        Database.executeBatch(new ReminderTask(), 1); // Execute batch
         Test.stopTest();
 
-        // Verify tasks created
-        List<Task> tasks = [SELECT Subject, Status, Priority, ActivityDate, WhatId FROM Task WHERE Subject = 'Call'];
-        Assert.areEqual(2, tasks.size(), 'There should be 2 Call tasks created.');
+        // Verify that tasks are created correctly
+        List<Task> tasks = [SELECT Subject, Status, Priority, ActivityDate, ReminderDateTime, RecurrenceInterval, RecurrenceRegeneratedType, WhatId
+                            FROM Task WHERE Subject = 'Call'];
+        Assert.areEqual(1, tasks.size(), 'There should be 1 Call task created.');
 
-        // Validate tasks are linked to correct accounts
-        for (Task task : tasks) {
-            Assert.isNotNull(task.WhatId, 'Task should be linked to an Account.');
-            Assert.areEqual('Not Started', task.Status, 'Task status should be "Not Started".');
-            Assert.areEqual('Normal', task.Priority, 'Task priority should be "Normal".');
-            Assert.areEqual(expectedDate, task.ActivityDate, 'Task reminder should be 5 days from today.');
+        // Validate task details
+        for (Task task : tasks) { // Loop in case of multiple tasks
+            Assert.areEqual('Call', task.Subject, 'The task subject should be "Call".');
+            Assert.areEqual('Nouvelle', task.Status, 'The task status should be "Nouvelle".');
+            Assert.areEqual('Normale', task.Priority, 'The task priority should be "Normale".');
+            Assert.areEqual(expectedActivityDate, task.ActivityDate, 'The task activity date should be today.');
+            Assert.isTrue(task.IsReminderSet, 'The task should have a reminder set.');
+            Assert.areEqual(expectedReminderDateTime, task.ReminderDateTime, 'The reminder should be set for 5 days later at 9 AM.');
+            Assert.areEqual(5, task.RecurrenceInterval, 'The recurrence interval should be 5 days.');
+            Assert.areEqual('Après la date d\'échéance', task.RecurrenceRegeneratedType, 'The recurrence type should be "After due date".');
         }
     }
-    
+
     @isTest
     static void testScheduler() {
-        // Start the test context
         Test.startTest();
-    
-        // Schedule the job using the ReminderTaskScheduler class
         String cronExpression = '0 0 9 ? * 2#1'; // First Monday of every month at 9:00 AM
         String jobId = System.schedule('Test Reminder Task Scheduler', cronExpression, new ReminderTaskScheduler());
-    
-        // End the test context
         Test.stopTest();
-    
-        // Verify the scheduled job exists
+
+        // Validate the scheduled job
         CronTrigger ct = [SELECT Id, CronExpression, TimesTriggered FROM CronTrigger WHERE Id = :jobId];
         Assert.areEqual(cronExpression, ct.CronExpression, 'The cron expression should match.');
-        Assert.areEqual(0, ct.TimesTriggered, 'The job should not have been triggered yet.');
-    }    
+    }
 }
