@@ -3,7 +3,7 @@
  * - Fetches Accounts without Orders and without 'Call' tasks.
  * - Creates a reminder task for these Accounts.
  */
-global class ReminderTask implements Database.Batchable<SObject> {
+public class ReminderTask implements Database.Batchable<SObject> {
 
     /**
      * Defines the batchable start method to retrieve a QueryLocator.
@@ -11,14 +11,18 @@ global class ReminderTask implements Database.Batchable<SObject> {
      * @param bc The batchable context.
      * @return A QueryLocator containing Accounts without Orders and 'Call' tasks.
      */
-    global Database.QueryLocator start(Database.BatchableContext bc) {
+    public Database.QueryLocator start(Database.BatchableContext bc) {
+        // Step 1: Fetch IDs of accounts with "Call" tasks
         Set<Id> accountIdsWithCallTasks = new Set<Id>();
-        for (Task task : [SELECT WhatId FROM Task WHERE Subject = 'Call']) {
+        for (Task task : [SELECT WhatId FROM Task WHERE Subject = 'Call' AND WhatId != null]) {
             accountIdsWithCallTasks.add(task.WhatId);
         }
 
-        String query = 'SELECT Id, OwnerId FROM Account WHERE Id NOT IN ' +
-                       '(SELECT AccountId FROM Order)';
+        // Step 2: Query accounts without orders and not in the "Call" task list
+        String query = 
+            'SELECT Id, OwnerId ' +
+            'FROM Account ' +
+            'WHERE Id NOT IN (SELECT AccountId FROM Order)';
         if (!accountIdsWithCallTasks.isEmpty()) {
             query += ' AND Id NOT IN :accountIdsWithCallTasks';
         }
@@ -32,9 +36,12 @@ global class ReminderTask implements Database.Batchable<SObject> {
      * @param bc       The batchable context.
      * @param accounts The list of Accounts to process.
      */
-    global void execute(Database.BatchableContext bc, List<Account> accounts) {
-        List<Task> tasks = new List<Task>();
+    public void execute(Database.BatchableContext bc, List<Account> accounts) {
+        // Fetch the correct value for 'RecurrenceRegeneratedType' using Schema
+        String recurrenceRegeneratedValue = getPicklistValue('Après la date d\'échéance');
 
+        // Create tasks for each account in the batch
+        List<Task> tasks = new List<Task>();
         for (Account acc : accounts) {
             tasks.add(new Task(
                 Subject = 'Call',
@@ -43,22 +50,44 @@ global class ReminderTask implements Database.Batchable<SObject> {
                 ActivityDate = Date.today(), // Task is due today
                 WhatId = acc.Id, // Link task to the account
                 OwnerId = acc.OwnerId, // Assign task to account owner
-                RecurrenceInterval = 5, // Task will regenerate every 5 days
-                RecurrenceRegeneratedType = 'Après la date d\'échéance' // Regenerate the task after the due date
+                IsReminderSet = true,
+                ReminderDateTime = DateTime.now().addDays(5).addHours(9),
+                RecurrenceInterval = 5, // Task will regenerate every 5 days ////
+                RecurrenceRegeneratedType = recurrenceRegeneratedValue // Use the dynamically fetched value
             ));
         }
 
+        // Insert tasks if there are any
         if (!tasks.isEmpty()) {
             insert tasks;
         }
     }
 
     /**
+     * Fetches the exact picklist value for RecurrenceRegeneratedType based on the label.
+     *
+     * @param label The label of the picklist value (e.g., 'Après la date d\'échéance').
+     * @return The actual picklist value matching the label.
+     */
+    private static String getPicklistValue(String label) {
+        Schema.DescribeSObjectResult taskDescription = Task.SObjectType.getDescribe();
+        Schema.DescribeFieldResult fieldDescription = taskDescription.fields.getMap().get('RecurrenceRegeneratedType').getDescribe();
+        List<Schema.PicklistEntry> picklistValues = fieldDescription.getPicklistValues();
+    
+        for (Schema.PicklistEntry entry : picklistValues) {
+            if (entry.getLabel() == label) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }    
+
+    /**
      * Finalizes the batch job.
      *
      * @param bc The batchable context.
      */
-    global void finish(Database.BatchableContext bc) {
+    public void finish(Database.BatchableContext bc) {
         System.debug('Reminder tasks have been created successfully.');
     }
 }

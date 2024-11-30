@@ -1,7 +1,8 @@
 /**
- * A utility class to generate test data for Accounts, Contracts, Products, Orders, and Order Items.
+ * A test class to generate test data for Accounts, Contracts, Products, Orders, and Order Items.
  * This class helps create consistent and reusable test data for unit tests.
  */
+@isTest
 public class TestDataFactory {
 
     /**

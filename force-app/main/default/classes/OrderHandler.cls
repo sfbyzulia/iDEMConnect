@@ -1,5 +1,5 @@
 /**
- * A merged handler class for the Order.
+ * A handler class for the Order.
  * - Validates Order activation.
  * - Manages the Active__c field on related Accounts.
  */
@@ -84,16 +84,12 @@ public class OrderHandler {
                 }
             }
 
-            List<Account> accountsToUpdate = new List<Account>();
             for (Id accId : accountIdsToUpdate) {
                 if (!accountsWithOrders.contains(accId)) {
-                    Account acc = new Account(Id = accId, Active__c = false);
-                    accountsToUpdate.add(acc);
+                    Account acc = new Account(Id = accId);
+                    acc.Active__c = false;
+                    update acc;
                 }
-            }
-
-            if (!accountsToUpdate.isEmpty()) {
-                update accountsToUpdate;
             }
         }
     }
