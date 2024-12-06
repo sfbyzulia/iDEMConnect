@@ -47,13 +47,13 @@ public class ReminderTask implements Database.Batchable<SObject> {
                 Subject = 'Call',
                 Status = 'Nouvelle',
                 Priority = 'Normale',
-                ActivityDate = Date.today(), // Task is due today
-                WhatId = acc.Id, // Link task to the account
-                OwnerId = acc.OwnerId, // Assign task to account owner
+                ActivityDate = Date.today(),
+                WhatId = acc.Id,
+                OwnerId = acc.OwnerId,
                 IsReminderSet = true,
                 ReminderDateTime = DateTime.now().addDays(5).addHours(9),
-                RecurrenceInterval = 5, // Task will regenerate every 5 days ////
-                RecurrenceRegeneratedType = recurrenceRegeneratedValue // Use the dynamically fetched value
+                RecurrenceInterval = 5,
+                RecurrenceRegeneratedType = recurrenceRegeneratedValue
             ));
         }
 
@@ -69,18 +69,19 @@ public class ReminderTask implements Database.Batchable<SObject> {
      * @param label The label of the picklist value (e.g., 'Après la date d\'échéance').
      * @return The actual picklist value matching the label.
      */
-    private static String getPicklistValue(String label) {
+    public String getPicklistValue(String label) {
         Schema.DescribeSObjectResult taskDescription = Task.SObjectType.getDescribe();
         Schema.DescribeFieldResult fieldDescription = taskDescription.fields.getMap().get('RecurrenceRegeneratedType').getDescribe();
         List<Schema.PicklistEntry> picklistValues = fieldDescription.getPicklistValues();
-    
+
         for (Schema.PicklistEntry entry : picklistValues) {
             if (entry.getLabel() == label) {
                 return entry.getValue();
             }
         }
-        return null;
-    }    
+            // Throw an exception if the value is not found (logically should never happen).
+            throw new IllegalArgumentException('Picklist value not found: ' + label);
+    }
 
     /**
      * Finalizes the batch job.

@@ -76,6 +76,29 @@ public class ReminderTaskTest {
     }
 
     /**
+     * Tests the exception thrown when the picklist value is not found.
+     */
+    @isTest
+    static void testPicklistValueNotFound() {
+        Test.startTest();
+        Boolean exceptionThrown = false;
+        try {
+            // Create an instance of the ReminderTask class
+            ReminderTask reminderTask = new ReminderTask();
+            // Attempt to fetch a non-existent picklist value to trigger the exception
+            reminderTask.getPicklistValue('Nonexistent Value');
+        } catch (Exception e) {
+            exceptionThrown = true;
+            Assert.isTrue(e instanceof IllegalArgumentException, 'Expected IllegalArgumentException was not thrown.');
+            Assert.areEqual('Picklist value not found: Nonexistent Value', e.getMessage(),
+                'The exception message does not match the expected value.');
+        }
+        Test.stopTest();
+
+        Assert.isTrue(exceptionThrown, 'An exception should have been thrown for the non-existent picklist value.');
+    }
+
+    /**
      * Tests the scheduling of the ReminderTask batch using ReminderTaskScheduler.
      */
     @isTest
