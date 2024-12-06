@@ -37,8 +37,6 @@ public class ReminderTask implements Database.Batchable<SObject> {
      * @param accounts The list of Accounts to process.
      */
     public void execute(Database.BatchableContext bc, List<Account> accounts) {
-        // Fetch the correct value for 'RecurrenceRegeneratedType' using Schema
-        String recurrenceRegeneratedValue = getPicklistValue('Après la date d\'échéance');
 
         // Create tasks for each account in the batch
         List<Task> tasks = new List<Task>();
@@ -51,9 +49,7 @@ public class ReminderTask implements Database.Batchable<SObject> {
                 WhatId = acc.Id,
                 OwnerId = acc.OwnerId,
                 IsReminderSet = true,
-                ReminderDateTime = DateTime.now().addDays(5).addHours(9),
-                RecurrenceInterval = 5,
-                RecurrenceRegeneratedType = recurrenceRegeneratedValue
+                ReminderDateTime = DateTime.now().addDays(5).addHours(9)
             ));
         }
 
@@ -61,26 +57,6 @@ public class ReminderTask implements Database.Batchable<SObject> {
         if (!tasks.isEmpty()) {
             insert tasks;
         }
-    }
-
-    /**
-     * Fetches the exact picklist value for RecurrenceRegeneratedType based on the label.
-     *
-     * @param label The label of the picklist value (e.g., 'Après la date d\'échéance').
-     * @return The actual picklist value matching the label.
-     */
-    public String getPicklistValue(String label) {
-        Schema.DescribeSObjectResult taskDescription = Task.SObjectType.getDescribe();
-        Schema.DescribeFieldResult fieldDescription = taskDescription.fields.getMap().get('RecurrenceRegeneratedType').getDescribe();
-        List<Schema.PicklistEntry> picklistValues = fieldDescription.getPicklistValues();
-
-        for (Schema.PicklistEntry entry : picklistValues) {
-            if (entry.getLabel() == label) {
-                return entry.getValue();
-            }
-        }
-            // Throw an exception if the value is not found (logically should never happen).
-            throw new IllegalArgumentException('Picklist value not found: ' + label);
     }
 
     /**

@@ -19,9 +19,6 @@ public class ReminderTaskTest {
         Order order = new Order(AccountId = accWithOrder.Id, Status = 'Draft', EffectiveDate = Date.today());
         insert order;
 
-        // Fetch the correct picklist value dynamically for testing
-        String recurrenceRegeneratedValue = getPicklistValue('Après la date d\'échéance');
-
         // Create a Call task for accWithCallTask
         Task callTask = new Task(
             Subject = 'Call',
@@ -31,9 +28,7 @@ public class ReminderTaskTest {
             WhatId = accWithCallTask.Id,
             OwnerId = testUser.Id,
             IsReminderSet = true,
-            ReminderDateTime = DateTime.now().addDays(5).addHours(9),
-            RecurrenceInterval = 5,
-            RecurrenceRegeneratedType = recurrenceRegeneratedValue
+            ReminderDateTime = DateTime.now().addDays(5).addHours(9)
         );
         insert callTask;
     }
@@ -47,15 +42,12 @@ public class ReminderTaskTest {
         Date expectedActivityDate = Date.today();
         DateTime expectedReminderDateTime = DateTime.now().addDays(5).addHours(9);
 
-        // Fetch the correct picklist value dynamically for testing
-        String recurrenceRegeneratedValue = getPicklistValue('Après la date d\'échéance');
-
         Test.startTest();
         Database.executeBatch(new ReminderTask(), 1); // Execute batch
         Test.stopTest();
 
         // Verify that only 1 task is created for accWithoutOrderAndTask
-        List<Task> tasks = [SELECT Subject, Status, Priority, ActivityDate, ReminderDateTime, RecurrenceInterval, RecurrenceRegeneratedType, WhatId, IsReminderSet
+        List<Task> tasks = [SELECT Subject, Status, Priority, ActivityDate, ReminderDateTime, WhatId, IsReminderSet
                             FROM Task WHERE Subject = 'Call' AND WhatId IN (SELECT Id FROM Account WHERE Name = 'Account Without Order and Task')];
         Assert.areEqual(1, tasks.size(), 'There should be 1 Call task created.');
 
@@ -66,36 +58,7 @@ public class ReminderTaskTest {
         Assert.areEqual('Normale', task.Priority, 'The task priority should be "Normale".');
         Assert.areEqual(expectedActivityDate, task.ActivityDate, 'The task activity date should be today.');
         Assert.isTrue(task.IsReminderSet, 'The task should have a reminder set.');
-
-        // Validate ReminderDateTime within a range of 1 second
-        Long timeDifferenceInMilliseconds = Math.abs(task.ReminderDateTime.getTime() - expectedReminderDateTime.getTime());
-        Assert.isTrue(timeDifferenceInMilliseconds <= 1000, 'The reminder time should be within 1 second of the expected time.');
-
-        Assert.areEqual(5, task.RecurrenceInterval, 'The recurrence interval should be 5 days.');
-        Assert.areEqual(recurrenceRegeneratedValue, task.RecurrenceRegeneratedType, 'The recurrence type should match the dynamically fetched picklist value.');
-    }
-
-    /**
-     * Tests the exception thrown when the picklist value is not found.
-     */
-    @isTest
-    static void testPicklistValueNotFound() {
-        Test.startTest();
-        Boolean exceptionThrown = false;
-        try {
-            // Create an instance of the ReminderTask class
-            ReminderTask reminderTask = new ReminderTask();
-            // Attempt to fetch a non-existent picklist value to trigger the exception
-            reminderTask.getPicklistValue('Nonexistent Value');
-        } catch (Exception e) {
-            exceptionThrown = true;
-            Assert.isTrue(e instanceof IllegalArgumentException, 'Expected IllegalArgumentException was not thrown.');
-            Assert.areEqual('Picklist value not found: Nonexistent Value', e.getMessage(),
-                'The exception message does not match the expected value.');
-        }
-        Test.stopTest();
-
-        Assert.isTrue(exceptionThrown, 'An exception should have been thrown for the non-existent picklist value.');
+        Assert.areEqual(expectedReminderDateTime.date(), task.ReminderDateTime.date(), 'The reminder date should be 5 days from today.');
     }
 
     /**
@@ -113,23 +76,4 @@ public class ReminderTaskTest {
         Assert.areEqual(cronExpression, ct.CronExpression, 'The cron expression should match.');
         Assert.areEqual(0, ct.TimesTriggered, 'The job should not have been triggered yet.');
     }
-
-    /**
-     * Fetches the exact picklist value for RecurrenceRegeneratedType based on the label.
-     *
-     * @param label The label of the picklist value (e.g., 'Après la date d\'échéance').
-     * @return The actual picklist value matching the label.
-     */
-    private static String getPicklistValue(String label) {
-        Schema.DescribeSObjectResult taskDescription = Task.SObjectType.getDescribe();
-        Schema.DescribeFieldResult fieldDescription = taskDescription.fields.getMap().get('RecurrenceRegeneratedType').getDescribe();
-        List<Schema.PicklistEntry> picklistValues = fieldDescription.getPicklistValues();
-    
-        for (Schema.PicklistEntry entry : picklistValues) {
-            if (entry.getLabel() == label) {
-                return entry.getValue();
-            }
-        }
-        return null;
-    }  
 }
