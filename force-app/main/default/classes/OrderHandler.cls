@@ -1,7 +1,7 @@
 /**
  * A handler class for the Order.
- * - Validates Order activation.
- * - Manages the Active__c field on related Accounts.
+ * Validates Order activation.
+ * Manages the Active__c field on related Accounts.
  */
 public class OrderHandler {
 
