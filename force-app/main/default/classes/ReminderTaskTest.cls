@@ -1,9 +1,6 @@
 @isTest
 public class ReminderTaskTest {
 
-    /**
-     * Sets up test data for the ReminderTask tests.
-     */
     @testSetup
     static void setupTestData() {
         // Create a test user
@@ -33,9 +30,7 @@ public class ReminderTaskTest {
         insert callTask;
     }
 
-    /**
-     * Tests the execution of the ReminderTask batch.
-     */
+    // Tests the execution of the ReminderTask batch.
     @isTest
     static void testReminderTaskBatch() {
         // Expected values
@@ -61,9 +56,7 @@ public class ReminderTaskTest {
         Assert.areEqual(expectedReminderDateTime.date(), task.ReminderDateTime.date(), 'The reminder date should be 5 days from today.');
     }
 
-    /**
-     * Tests the scheduling of the ReminderTask batch using ReminderTaskScheduler.
-     */
+    // Tests the scheduling of the ReminderTask batch using ReminderTaskScheduler.
     @isTest
     static void testScheduler() {
         Test.startTest();

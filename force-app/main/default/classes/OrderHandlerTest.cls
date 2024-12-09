@@ -5,9 +5,7 @@
 @isTest
 public class OrderHandlerTest {
 
-    /**
-     * Sets up test data for the OrderHandler tests.
-     */
+    // Sets up test data for the OrderHandler tests.
     @testSetup
     static void setupTestData() {
         Account acc = TestDataFactory.createAccount();
@@ -19,9 +17,7 @@ public class OrderHandlerTest {
         TestDataFactory.createOrder(acc.Id, con.Id, pbe.Pricebook2Id);
     }
 
-    /**
-     * Tests that an Order cannot be activated without associated Order Items.
-     */
+    // Tests that an Order cannot be activated without associated Order Items.
     @isTest
     static void testOrderActivationWithoutProducts() {
         Order ord = [SELECT Id, Status FROM Order WHERE Status = 'Draft' LIMIT 1];
@@ -37,9 +33,7 @@ public class OrderHandlerTest {
         Test.stopTest();
     }
 
-    /**
-     * Tests that an Order can be activated with associated Order Items.
-     */
+    // Tests that an Order can be activated with associated Order Items.
     @isTest
     static void testOrderActivationWithProducts() {
         Order ord = [SELECT Id, Status FROM Order WHERE Status = 'Draft' LIMIT 1];
@@ -53,9 +47,7 @@ public class OrderHandlerTest {
         Assert.areEqual('Activated', updatedOrder.Status, 'The Order status should be updated to Activated.');
     }
 
-    /**
-     * Tests that Active__c is checked when an Order is added to an Account.
-     */
+    // Tests that Active__c is checked when an Order is added to an Account.
     @isTest
     static void testOrderInsertion() {
         Account acc = [SELECT Id, Active__c FROM Account WHERE Name = 'Test Account' LIMIT 1];
@@ -64,9 +56,7 @@ public class OrderHandlerTest {
         Assert.areEqual(true, acc.Active__c, 'Active__c should be checked when an Order is added.');
     }
 
-    /**
-     * Tests that Active__c remains checked when not all Orders are deleted.
-     */
+    // Tests that Active__c remains checked when not all Orders are deleted.
     @isTest
     static void testOrderPartialDeletion() {
         Account acc = [SELECT Id, Active__c FROM Account WHERE Name = 'Test Account' LIMIT 1];
@@ -76,9 +66,7 @@ public class OrderHandlerTest {
         Assert.areEqual(true, acc.Active__c, 'Active__c should remain checked when there are still Orders linked.');
     }
 
-    /**
-     * Tests that Active__c is unchecked when all Orders are deleted.
-     */
+    // Tests that Active__c is unchecked when all Orders are deleted.
     @isTest
     static void testOrderDeletion() {
         Account acc = [SELECT Id, Active__c FROM Account WHERE Name = 'Test Account' LIMIT 1];
